@@ -1,0 +1,34 @@
+# --- Python ---
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+
+# --- Virtual environments ---
+venv/
+.venv/
+env/
+
+# --- Environment / secrets ---
+.env
+*.env.local
+
+# --- Databases (mock or real, never commit actual DB files) ---
+db/*.db
+db/*.sqlite3
+!db/.gitkeep
+
+# --- Jupyter / Colab ---
+.ipynb_checkpoints/
+
+# --- OS / editor ---
+.DS_Store
+.vscode/
+.idea/
+
+# --- Testing / coverage ---
+.pytest_cache/
+.coverage
+htmlcov/
