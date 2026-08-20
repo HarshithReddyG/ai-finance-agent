@@ -51,6 +51,29 @@ def _valid_categories() -> list[str]:
     return list(CATEGORY_RULES.keys())
 
 
+# Discovered 2026-08-20: tested against a real (mock-data) edge case —
+# "Global Overseas Traders Ltd" / "INTL PURCHASE GLOBAL OVERSEAS TRADERS"
+# — an unfamiliar import/goods merchant, ground truth Shopping. The model
+# consistently (5/5 calls, temperature=0) answered Travel instead, purely
+# off the words "international"/"overseas"/"global" in the merchant name
+# and description — a surface-level keyword association, not a reasoned
+# judgment about what was actually purchased. This note targets that
+# general failure mode (any unfamiliar "international-sounding" merchant),
+# not just this one company name, since the same bias would misfire on
+# any future rare foreign merchant selling ordinary goods.
+_DISAMBIGUATION_NOTES = (
+    "Notes to avoid a common mistake: the words \"international\", "
+    "\"overseas\", \"global\", or \"foreign\" appearing in a merchant name "
+    "or description are NOT by themselves evidence of Travel. Travel means "
+    "an actual transportation, lodging, or travel-booking merchant (e.g. "
+    "an airline, hotel, car rental company, or travel agency). An "
+    "unfamiliar international-sounding merchant that appears to sell "
+    "goods should be categorized based on what was purchased (e.g. "
+    "Shopping), not assumed to be Travel just because its name sounds "
+    "foreign."
+)
+
+
 def _build_prompt(merchant_name: str, raw_description: str, categories: list[str]) -> str:
     category_list = "\n".join(f"- {c}" for c in categories)
     return (
@@ -59,6 +82,7 @@ def _build_prompt(merchant_name: str, raw_description: str, categories: list[str
         "with ONLY the category name, nothing else, no punctuation, no "
         "explanation:\n\n"
         f"{category_list}\n\n"
+        f"{_DISAMBIGUATION_NOTES}\n\n"
         f"Merchant name: {merchant_name}\n"
         f"Raw statement description: {raw_description}\n\n"
         "Category:"

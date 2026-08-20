@@ -15,7 +15,7 @@ CATEGORY_RULES: dict[str, list[str]] = {
         "whole foods", "trader joe", "safeway", "kroger", "walmart",
         "costco", "aldi", "publix",
         "sun fresh", "midtown market", "sprouts farmers", "wholefds",
-        "fresh market",
+        "fresh market", "nob hill", "lucky #",
     ],
     "Restaurants": [
         "chipotle", "mcdonald", "olive garden", "panera", "subway",
@@ -33,24 +33,36 @@ CATEGORY_RULES: dict[str, list[str]] = {
         "starbucks", "peet's", "peets", "dunkin", "coffee",
     ],
     "Gas & Fuel": [
-        "shell", "chevron", "exxon", "mobil", "bp", "76", "arco", "qt",
+        "shell", "chevron", "exxon", "bp", "76", "arco", "qt",
+        "phillips 66",
+        # NOT "mobil" on its own — real false positive found on real data:
+        # "MOBILE PAYMENT - THANK YOU" (an Amex bill payment, nothing to
+        # do with gas) contains "mobil" as a substring of "mobile", and at
+        # 5 characters it clears MIN_LOOSE_MATCH_LENGTH, so it was loose-
+        # matching here. "exxon" alone still catches ExxonMobil-branded
+        # stations without the collision risk.
     ],
     "Convenience Store": [
+        # Real travel-stop/convenience chains — distinct enough from a
+        # pure gas station (no fuel-only branding) or a grocery store
+        # (much smaller, quick-purchase focused) to warrant their own
+        # category rather than being forced into either.
         "7-eleven", "circle k", "maverik", "love's", "gas stop",
         "travel stop",
     ],
     "Transportation": [
         "uber", "lyft", "metro transit", "parking", "toll",
-        "car wash", "laz pkg", "city of santa monica",
+        "car wash", "carwash",  # real statement text varies on the space
+        "laz pkg", "city of santa monica",
     ],
     "Shopping": [
         "amazon", "target", "best buy", "nike", "ebay", "etsy",
         "home depot", "ikea",
         "ae retail", "hugo boss", "express #", "legends outlet",
-        "wal-mart", "ups store", "liquor", "totalwine", "back market",
-        "backmarket",
+        "wal-mart", "ups store", "liquor", "totalwine", "total wine",
+        "back market", "backmarket",
         "boss m outlet", "hollywood tshirt", "jockey outlet", "groupon",
-        "ua_178", "printwithme",
+        "ua_178", "printwithme", "sports basement",
     ],
     "Entertainment": [
         "amc", "steam games", "bowling", "lucky strike", "bowlero",
@@ -61,7 +73,10 @@ CATEGORY_RULES: dict[str, list[str]] = {
     ],
     "Utilities": [
         "water utility", "power & light", "comcast", "xfinity",
-        "verizon", "at&t", "t-mobile", "visible",
+        "verizon", "at&t", "att* bill", "t-mobile", "visible",
+        "boost mobile",
+        # "at&t" (the brand rule above) never matches a real BoA statement's
+        # own text for this — it prints "ATT* BILL PAYMENT", no ampersand.
     ],
     "Housing": [
         "apartments", "mortgage", "ysi*bellerive",
@@ -86,13 +101,19 @@ CATEGORY_RULES: dict[str, list[str]] = {
     ],
     "Income": [
         "payroll", "direct deposit",
+        "cash rewards",  # credit card cashback credits — money coming back to you
     ],
     "Fees": [
         "maintenance fee", "atm fee", "overdraft fee", "motor vehicle dept",
     ],
     "Transfers": [
         "transfer to savings", "transfer from checking", "venmo", "zelle",
+        # A real credit card statement's "payment" lines are you paying
+        # your own card from your own checking account — that's a
+        # transfer, not spending, same concept as the mock data's
+        # checking->savings transfer.
         "atm payment", "payment from chk",
+        "mobile payment",  # Amex's own wording for the same concept
     ],
 }
 
@@ -104,6 +125,12 @@ _NOISE_PATTERNS = [
     r"\b[A-Z]{2}\b$",
 ]
 
+# Patterns shorter than this are too easy to accidentally match inside an
+# unrelated word (e.g. "bp" inside some random string), so they always
+# require a word-boundary match, even in the merchant_name tier. Longer
+# patterns are allowed a loose substring match there, since merchant_name
+# is a controlled field and loose matching is what correctly catches
+# compound brand names like "exxon" inside "exxonmobil".
 MIN_LOOSE_MATCH_LENGTH = 4
 
 
@@ -121,7 +148,26 @@ def _matches(pattern: str, candidate: str, *, allow_loose: bool) -> bool:
 
 
 def categorize_by_rules(merchant_name: str, raw_description: str = "") -> str | None:
-    """Return a category if a known merchant pattern matches, else None."""
+    """Return a category if a known merchant pattern matches, else None.
+
+    Two-tier strategy, checked in this order:
+      1. merchant_name, across every category. Patterns of at least
+         MIN_LOOSE_MATCH_LENGTH characters get a loose substring match
+         (correctly catches "exxon" inside "exxonmobil"); shorter
+         patterns still require a word-boundary match even here, since a
+         short pattern is too likely to collide with something unrelated.
+      2. Only if step 1 finds nothing: fall back to normalized
+         raw_description, always with a word-boundary match — that field
+         can contain uncontrolled text (e.g. a random city name), where
+         even a "long enough" pattern can coincidentally appear inside an
+         unrelated word (the "wendy" inside "Wendyville" failure mode).
+
+    Note: for data sources that don't provide a separate clean merchant
+    field (e.g. a parsed real bank statement, where merchant_name and
+    raw_description end up identical), tier 1 is effectively the only
+    tier that ever runs — which is exactly why short patterns need the
+    word-boundary safety net in both tiers, not just tier 2.
+    """
     merchant_candidate = merchant_name.lower()
 
     for category, patterns in CATEGORY_RULES.items():
