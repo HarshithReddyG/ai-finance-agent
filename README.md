@@ -5,10 +5,6 @@ and categorizes them, detects anomalies and trends, and answers
 natural-language questions about your spending — built as an incremental,
 phase-by-phase learning project.
 
-Starts on mock CSV data; Phase 10 optionally swaps in the Plaid Sandbox
-API for a real-world integration exercise. No real credentials or real
-financial data are ever used.
-
 ## Project status
 
 Full architecture diagram, phase roadmap, and current status live in
