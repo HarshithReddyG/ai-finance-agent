@@ -50,7 +50,7 @@ cd ai-finance-agent
 python3 -m venv venv
 source venv/bin/activate        
 
-# 3. Install dependencies
+# 3. Install
 pip install -r requirements.txt
 
 # 4. Copy the environment template (no real secrets needed yet)
