@@ -1,5 +1,5 @@
 # AI Personal Finance Agent
-
+ 
 An AI-powered agent that ingests credit card / bank transactions, stores
 and categorizes them, detects anomalies and trends, and answers
 natural-language questions about your spending — built as an incremental,
@@ -14,7 +14,7 @@ Full architecture diagram, phase roadmap, and current status live in
 
 ```
 ai-finance-agent/
-├── README.md                   ← you are here
+├── README.md                   ← you are here 
 ├── PROJECT_TRACKER.md          ← architecture diagram + phase roadmap + status
 ├── .env.example                ← template for local secrets (copy to .env)
 ├── requirements.txt            ← Python dependencies
