@@ -15,7 +15,6 @@ times, so we can see:
      flaky (different answers across calls -> temperature/sampling
      issue, or the category list itself is ambiguous for this merchant).
 
-Run: ./venv/bin/python3.11 scripts/diagnose_llm_miscategorization.py
 """
 
 from __future__ import annotations
